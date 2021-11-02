@@ -1,0 +1,181 @@
+Procedure-- a block of statements which can perform a task. it is similar like your functions in other languages.
+
+delimiter anysymbol
+
+create procedure procedurename()
+begin
+	statements
+
+enddelimiter
+
+delimiter $$
+create procedure getEmployees()
+Begin
+	select employeeid, first_name, salary 
+	from employees
+	order by salary;
+End$$
+
+delimiter ;
+
+call proceduer
+
+call getEmployees();
+
+
+//declare variables
+
+declare totalsal decimal default 0.0;
+set totalsal =238;
+
+
+//how to declare and use a varibale in a statement
+delimiter $$
+create procedure getTotalSalary()
+begin
+	declare totalsal decimal(10,2) default 0;
+	select sum(salary) into totalsal from employees;
+
+end$$
+delimiter ;
+
+call getTotalSalary()
+
+
+
+//parameter-- in, out, inout
+
+in--input (read only)
+out-- output (write)
+inout-- read/write
+
+
+// display recored of a particular employee 
+delimiter $$
+create procedure getEmployeeInfo(in empid integer)
+begin
+	set empid=89;//error as we can't modify in parameters
+
+	select * from employees where employee_id=empid;
+end $$
+delimiter;
+call getEmployeeInfo(130);
+
+//display no of employees of a particular department
+
+delimiter $$
+create procedure getTotalEmployee(
+	in dept_id integer, out counting int)
+begin
+	select count(employee_id) into counting from employees where deptarment_id=dept_id;
+end$$
+
+delimiter ;
+
+call getTotalEmployee(30, @counting);
+select @counting;
+
+
+
+//inout example  passing a value and calculate its square
+
+
+delimiter $$
+cretae procedure squareofnumber(inout num int)
+begin
+	set num=num*num;
+end$$
+delimiter ;
+
+set @num=5;
+call squareofnumber(@num);
+select @num;
+
+
+//remove procedue
+drop procedure 'squrareofnumber';
+
+
+//listing stored procedure
+
+show procedure procedurename;
+
+show procedure squareofnumber
+
+**************************************************
+// if condition
+
+if condition then 
+staten=ments
+end if;
+
+if condition then
+	statments;
+elseif condition then
+	statements;
+else
+	statements
+end if;
+
+delimiter $$
+create procedure getEmployeeLevel(in pemployeeid int, out pemplevel varchar(20))
+begin
+declare psalary decimal default 0;
+select salary into psalary from employees where pemployeeid=employee_id;
+
+	if psalary > 10000 then
+		set pemplevel ='L3';
+	elseif psalary >=5000 and psalary <=10000 then
+		set pemplevel='L2';
+	else
+		set pemplevel='L1';
+	end if;
+End $$
+delimiter ;
+
+
+call getEmployeeLevel(102, @pemplevel);
+select @pemplevel;
+
+
+
+
+//case statement
+
+case case_value
+	when value then statements
+	when value then statements
+	when value then statements
+	[else statements]
+end case;
+
+when else clause does not exist and suitable when clause is also not matched, then an error generates
+
+	case not found for case statement
+
+delimiter $$
+create procedure getHoliday(in pemployee_id int,
+out noofholiday int)
+
+begin
+	declare pdepartment_name varchar(20);
+
+select department_name into pdepartment_name from departments inner join employees where department_id=(select department_id from employees where pemployee_id=employee_id)
+
+case pdepartment_name
+	when 'Accounting' then 
+		set noofholiday=4;
+	when 'Sales' then
+		set noofholiday=2;
+	else
+		set noofholiday=3;
+end case;
+end$$
+delimiter ;
+
+call getHoliday(112, @noofholiday);
+select @noofholiday;
+	
+
+
+
