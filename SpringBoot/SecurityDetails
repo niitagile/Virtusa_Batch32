@@ -1,0 +1,206 @@
+
+		Filter- which executes before any request
+<filter>
+<filter-name>springSecurityFilterChain</filter-name>
+<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+</filter>
+<filter-mapping>
+<filter-name>springsecurityfilterchain</filter-name>
+<url-pattern>/*</url-pattern>
+</filter-mapping>
+		
+	2. interface Authentication
+	
+	Object getCredentials()-- the credntials that prove the principal is correct
+	Object getPrincipal()
+	boolean isAuthenticated
+	void setAuthenticated(boolean isAuthenticated)
+	
+	3) interface AuthenticationProvider
+	methods
+	i)authenticate(Authentication authenticate)
+		Perform authentication with the same contract as
+			AuthenticateionManager.authenticate(Authentication)
+	ii) boolean supports(java.lang.Class<?> authentication)	
+		
+	UserDetailsService-- loadUserByUserName()	
+	
+	
+	
+	Interface UserDetails
+	
+	getAuthorities()
+	getPassword()
+	getUsername()
+	isAccountNonExpired()
+	isAccountNonLocked()
+	isCredentialNonExpired()
+	isEnables()
+	
+	
+	
+	
+	
+	class SecurityConfiuration extends WebSecurityConfigureAdapter
+	Authentication
+	@Overide
+	configure(AuthenticationManagerBuilder)
+	
+	Autherization
+	@Override
+	configure(HttpSecurity)
+	
+	
+	Spring Security default behavior
+	- Add mandatory authentication for URLs
+	-Adds Login form
+	-handles login error
+	-create a user sets a default password
+*****************************************************************************
+			Database connectivity
+			
+	1) Create Database--For Oracle database
+
+i) create tables
+CREATE TABLE USERS (
+    USERNAME NVARCHAR2(128) PRIMARY KEY,
+    PASSWORD NVARCHAR2(128) NOT NULL,
+    ENABLED CHAR(1) CHECK (ENABLED IN ('Y','N') ) NOT NULL
+);
+
+
+CREATE TABLE AUTHORITIES (
+    USERNAME NVARCHAR2(128) NOT NULL,
+    AUTHORITY NVARCHAR2(128) NOT NULL
+);
+ALTER TABLE AUTHORITIES ADD CONSTRAINT AUTHORITIES_UNIQUE UNIQUE (USERNAME, AUTHORITY);
+ALTER TABLE AUTHORITIES ADD CONSTRAINT AUTHORITIES_FK1 FOREIGN KEY (USERNAME) REFERENCES USERS (USERNAME) ENABLE			 
+
+ii)insert some records
+insert into USERS(username, password, enabled) values('Alisa', 'alisa@123', 't');
+insert into authorities(username, authority) values('Alisa', 'ROLE_ADMIN');
+
+2) Create springboot project--
+	dependencies are- web , security, jpa, jstl,hebernate, driver
+3) Spring Security Configuration
+configure datasource
+DataSource datasource
+driverClassName
+url
+username
+password
+
+						spring-database.xml
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <bean id="dataSource"
+        class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+
+        <property name="driverClassName" value="com.mysql.jdbc.Driver" />
+        <property name="url" value="jdbc:mysql://localhost:3306/test" />
+        <property name="username" value="root" />
+        <property name="password" value="password" />
+    </bean>
+
+
+or
+Configuration file
+
+@Bean(name = "dataSource")
+    public DriverManagerDataSource dataSource() {
+        DriverManagerDataSource driverManagerDataSource = new DriverManagerDataSource();
+        driverManagerDataSource.setDriverClassName("com.mysql.jdbc.Driver");
+        driverManagerDataSource.setUrl("jdbc:mysql://localhost:3306/test");
+        driverManagerDataSource.setUsername("root");
+        driverManagerDataSource.setPassword("password");
+        return driverManagerDataSource;
+    }
+    
+    
+4) Configration of Spring Security
+@EnableWebSecurity
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+	@Autowired
+	DataSource dataSource;
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+		// TODO Auto-generated method stub
+		auth.jdbcAuthentication().dataSource(dataSource)
+		auth.jdbcAuthentication().dataSource(dataSource)
+        .usersByUsernameQuery(
+            "select username,password, enabled from users where username=?")
+        .authoritiesByUsernameQuery(
+            "select username, authority from authorities where username=?");
+	}
+	
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		// TODO Auto-generated method stub
+		http.authorizeRequests()
+		.antMatchers("/admin").hasRole("ADMIN")
+		.antMatchers("/user").hasAnyRole("USER","ADMIN")
+		.antMatchers("/").permitAll()
+		.and().formLogin();
+		
+	}
+	
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		// TODO Auto-generated method stub
+		http.authorizeRequests()
+		.antMatchers("/admin/**").hasRole("ROLE_ADMIN")
+		.and().formLogin().loginPage("/login").failureUrl("/login?error")
+		.usernameParameter("username").passwordParameter("password")
+		.and()
+		.logout().logoutSuccessURL("/login?logout")
+		
+		
+	}
+	
+	
+	@Bean
+	public PasswordEncoder getPasswordEncoder(){
+		return NoOpPasswordEncoder.getInstance();
+	}
+
+}
+
+********************************************************************************************
+						Custom Login Form
+						
+
+1) Create form
+2) Configure Spring MVC Login Path
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/login").setViewName("login");
+    }
+}						
+3)Spring Security java configuration
+@Configuration
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Override
+    public void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                .anyRequest()
+                .authenticated()
+                .and()
+                .formLogin()
+                .loginPage("/login")
+                .permitAll()
+                .and()
+                .logout()
+                .permitAll();
+    }
+}		
